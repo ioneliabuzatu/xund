@@ -1,0 +1,6 @@
+.git/
+.ipynb_checkpoints/
+__pycache__/
+.pytest_cache/
+dask-worker-space/
+
