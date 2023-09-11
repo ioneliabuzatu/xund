@@ -4,4 +4,8 @@ __pycache__/
 .pytest_cache/
 dask-worker-space/
 
+<<<<<<< HEAD
+=======
+*.pt
+>>>>>>> refs/remotes/origin/main
 
