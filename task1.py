@@ -1,4 +1,3 @@
-from time import perf_counter
 from typing import Tuple, Sequence, Collection, List, NamedTuple
 
 
@@ -24,27 +23,33 @@ def chunkify(words: Sequence[str], entities: Collection[Entity], max_chunk_size:
     :param words: a sequence of words
     :param entities: entities associated with words
     :param max_chunk_size: maximum number of words a chunk is allowed to contain
+    :return chunks: list of the chunked words
     """
+    def store_entity(start_pos_chunk, end_chunk, entity) -> bool:
+        before_start = start_pos_chunk <= entity.position[0] < end_chunk
+        before_end = start_pos_chunk < entity.position[1] <= end_chunk
+        store = before_start and before_end
+        return store
+
+    num_words = len(words)
     chunks = []
-    i = 0
+    sliding_window = 0
 
-    while i < len(words):
-        start = i
-        end = min(i + max_chunk_size, len(words))
+    while sliding_window < num_words:
+        start_chunk = sliding_window
+        end_chunk = min(sliding_window + max_chunk_size, num_words)
 
-        # Check if the end is cutting through an entity
+        # check if the end is cutting through an entity
         for entity in entities:
             entity_start, entity_end = entity.position
-            if start <= entity_start < end < entity_end:
-                end = entity_start
-            elif end >= entity_end > start > entity_start:
-                end = entity_start
+            if start_chunk <= entity_start < end_chunk < entity_end:
+                end_chunk = entity_start
+            elif end_chunk >= entity_end > start_chunk > entity_start:
+                end_chunk = entity_start
 
-        # Collect entities for the current chunk
-        chunk_entities = [entity for entity in entities if start <= entity.position[0] < end and start < entity.position[1] <= end]
-
-        chunks.append(Chunk((start, end), chunk_entities))
-        i = end
+        collected_chunk_entities = [entity for entity in entities if store_entity(start_chunk, end_chunk, entity)]
+        chunks.append(Chunk((start_chunk, end_chunk), collected_chunk_entities))
+        sliding_window = end_chunk
 
     return chunks
 
@@ -58,21 +63,11 @@ def test_example():
     # find chunks
     chunks = chunkify(words, entities, max_chunk_size)
     
-    print(chunks)
-
-    _chunks = [
-        Chunk((0, 2), []),
-        Chunk((2, 4), [Entity("symptom", (3, 4))]),
-        Chunk((4, 6), [Entity("symptom", (5, 6))]),
-        Chunk((6, 7), [])
-    ]
-
     # tests
     assert len(chunks) == 4
     assert chunks[1].entities == [entities[0]] and chunks[2].entities == [entities[1]]
     assert not chunks[0].entities and not chunks[3].entities
 
-    start = perf_counter()
     for chunk in chunks:
         start, end = chunk.position
         size = end - start
